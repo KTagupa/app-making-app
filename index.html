@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Development Manager</title>
+    <meta name="description" content="AI-powered project management tool for planning and tracking HTML application development">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <span>Loading...</span>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1 class="app-title">
+                    <span class="logo">📋</span>
+                    App Dev Manager
+                </h1>
+                <div class="project-selector">
+                    <label for="project-dropdown">Project:</label>
+                    <select id="project-dropdown">
+                        <option value="">No projects</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="header-center">
+                <div class="zoom-controls">
+                    <button id="zoom-out-btn" class="icon-btn" title="Zoom Out">−</button>
+                    <span id="zoom-level" class="zoom-display">100%</span>
+                    <button id="zoom-in-btn" class="icon-btn" title="Zoom In">+</button>
+                    <button id="zoom-reset-btn" class="icon-btn small" title="Reset Zoom">⟲</button>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button id="new-project-btn" class="btn btn-primary">
+                <span class="btn-icon">+</span>
+                New Project
+            </button>
+            <button id="export-btn" class="btn btn-secondary">
+                <span class="btn-icon">📤</span>
+                Export
+            </button>
+            <button id="import-btn" class="btn btn-secondary">
+                <span class="btn-icon">📥</span>
+                Import
+            </button>
+            <button id="sync-gist-btn" class="btn btn-secondary">
+                <span class="btn-icon">☁️</span>
+                Sync Gist
+            </button>
+            <input type="file" id="import-file-input" accept=".json" style="display: none;">
+            
+            <div class="toolbar-spacer"></div>
+            
+            <div class="project-goal">
+                <span class="goal-label">Goal:</span>
+                <span id="project-goal-display" class="goal-text">No project selected</span>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Infinite Canvas -->
+            <div id="canvas" class="infinite-canvas">
+                <div id="canvas-content" class="canvas-content"></div>
+                <svg id="dependency-lines" class="dependency-overlay"></svg>
+            </div>
+
+            <!-- AI Panel -->
+            <div class="ai-panel">
+                <div class="ai-panel-header">
+                    <span class="ai-icon">🤖</span>
+                    <span class="ai-title">AI Assistant</span>
+                    <div class="ai-model-selector-wrapper">
+                        <select id="ai-model-selector">
+                            <option value="claude">Claude</option>
+                            <option value="chatgpt">ChatGPT</option>
+                            <option value="gemini">Gemini</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="ai-panel-body">
+                    <div class="ai-modes">
+                        <button class="ai-mode-btn active" data-mode="full_project">
+                            Plan Entire Project
+                        </button>
+                        <button class="ai-mode-btn" data-mode="phase_level">
+                            Work on Phase
+                        </button>
+                        <button class="ai-mode-btn" data-mode="feature_level">
+                            Refine Feature
+                        </button>
+                    </div>
+                    
+                    <div class="ai-input-area">
+                        <textarea 
+                            id="ai-prompt-input" 
+                            placeholder="Describe your app idea or what you want to add..."
+                            rows="3"
+                        ></textarea>
+                        <button id="ai-generate-btn" class="btn btn-primary">
+                            Generate
+                        </button>
+                    </div>
+                    
+                    <div class="ai-tips">
+                        <p><strong>Tips:</strong></p>
+                        <ul>
+                            <li>Mark features as "Keep" to preserve them during regeneration</li>
+                            <li>Mark features as "Discard" to let AI remove them</li>
+                            <li>Be specific about features you want</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button id="close-settings-btn" class="modal-close">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <section class="settings-section">
+                    <h3>AI API Keys</h3>
+                    <p class="settings-description">
+                        Add API keys to enable AI-powered planning. Keys are stored locally.
+                    </p>
+                    
+                    <div class="api-key-row">
+                        <span class="api-key-name">Claude (Anthropic)</span>
+                        <span id="claude-status" class="api-key-status not-set">Not set</span>
+                        <button class="btn btn-small add-api-key-btn" data-model="claude">Add</button>
+                    </div>
+                    
+                    <div class="api-key-row">
+                        <span class="api-key-name">ChatGPT (OpenAI)</span>
+                        <span id="chatgpt-status" class="api-key-status not-set">Not set</span>
+                        <button class="btn btn-small add-api-key-btn" data-model="chatgpt">Add</button>
+                    </div>
+                    
+                    <div class="api-key-row">
+                        <span class="api-key-name">Gemini (Google)</span>
+                        <span id="gemini-status" class="api-key-status not-set">Not set</span>
+                        <button class="btn btn-small add-api-key-btn" data-model="gemini">Add</button>
+                    </div>
+                </section>
+                
+                <section class="settings-section">
+                    <h3>GitHub Gist Sync</h3>
+                    <p class="settings-description">
+                        Connect to GitHub to backup your projects to Gist.
+                    </p>
+                    
+                    <div class="api-key-row">
+                        <span class="api-key-name">GitHub Token</span>
+                        <span id="github-status" class="api-key-status not-set">Not set</span>
+                        <button id="add-github-token-btn" class="btn btn-small">Add</button>
+                    </div>
+                    
+                    <p class="settings-hint">
+                        Create a token at <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> with "gist" scope.
+                    </p>
+                </section>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="save-settings-btn" class="btn btn-primary">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Script -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
