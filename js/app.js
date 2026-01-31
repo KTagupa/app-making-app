@@ -687,7 +687,7 @@ function applyAIResponse(project, newPhases) {
             description: phaseData.description || '',
             order: index,
             collapsed: false,
-            position: { x: index * 320 + 40, y: 100 },
+            position: { x: index * 360 + 40, y: 100 },
             features: (phaseData.features || []).map(featureData => ({
                 id: generateId(),
                 phase_id: null, // Will be set after

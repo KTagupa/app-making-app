@@ -333,7 +333,7 @@ export function renderProject(project) {
     const addButton = document.createElement('button');
     addButton.className = 'add-phase-btn';
     addButton.innerHTML = '+ Add Phase';
-    addButton.style.left = `${project.phases.length * 320 + 40}px`;
+    addButton.style.left = `${project.phases.length * 360 + 40}px`;
     addButton.style.top = '100px';
     addButton.onclick = () => window.app.addNewPhase();
     canvasContent.appendChild(addButton);
@@ -347,7 +347,7 @@ function createPhaseElement(phase, index) {
     div.dataset.phaseId = phase.id;
 
     // Position
-    div.style.left = `${phase.position?.x || (index * 320 + 40)}px`;
+    div.style.left = `${phase.position?.x || (index * 360 + 40)}px`;
     div.style.top = `${phase.position?.y || 100}px`;
 
     // Calculate progress
