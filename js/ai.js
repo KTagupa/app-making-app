@@ -17,7 +17,7 @@ const AI_CONFIGS = {
             'anthropic-version': '2023-06-01',
             'anthropic-dangerous-direct-browser-access': 'true'
         }),
-        modelName: 'claude-sonnet-4-20250514'
+        modelName: 'claude-3-5-sonnet-20241022' // Updated to current available model
     },
 
     chatgpt: {
@@ -27,7 +27,7 @@ const AI_CONFIGS = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
         }),
-        modelName: 'gpt-4o'
+        modelName: 'gpt-4o-mini' // Changed to more accessible model; can upgrade to gpt-4o if available
     },
 
     gemini: {
@@ -224,6 +224,8 @@ export async function validateAPIKey(model, apiKey) {
         let requestBody;
         let endpoint = config.endpoint;
 
+        console.log(`Validating ${model} API key...`);
+
         switch (model) {
             case 'claude':
                 requestBody = {
@@ -250,16 +252,35 @@ export async function validateAPIKey(model, apiKey) {
                 break;
         }
 
+        console.log('Request endpoint:', endpoint);
+        console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: config.headers(apiKey),
             body: JSON.stringify(requestBody)
         });
 
+        console.log('Response status:', response.status, response.statusText);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error(`${config.name} API validation error:`, errorData);
+            console.error('Full error details:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorData
+            });
+        }
+
         return response.ok;
 
     } catch (error) {
         console.error('API key validation failed:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack
+        });
         return false;
     }
 }

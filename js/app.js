@@ -438,22 +438,42 @@ async function addAPIKey(model) {
 
     if (!key) return;
 
+    // Trim whitespace from the key
+    const trimmedKey = key.trim();
+
+    if (!trimmedKey) {
+        showNotification({ type: 'warning', message: 'API key cannot be empty' });
+        return;
+    }
+
     try {
         showLoadingOverlay(true);
 
+        console.log(`Testing ${modelName} API key...`);
+
         // Validate the key
-        const isValid = await validateAPIKey(model, key);
+        const isValid = await validateAPIKey(model, trimmedKey);
 
         if (isValid) {
-            await saveAPIKey(model, key);
+            await saveAPIKey(model, trimmedKey);
             await updateAPIKeyStatus();
-            showNotification({ type: 'success', message: `${modelName} API key saved` });
+            showNotification({ type: 'success', message: `${modelName} API key saved successfully!` });
         } else {
-            showNotification({ type: 'error', message: `Invalid ${modelName} API key` });
+            console.error(`${modelName} API key validation failed`);
+            showNotification({
+                type: 'error',
+                message: `Invalid ${modelName} API key. Please check the browser console for details.`,
+                duration: 5000
+            });
         }
 
     } catch (error) {
-        showNotification({ type: 'error', message: 'Failed to validate API key' });
+        console.error(`Error validating ${modelName} API key:`, error);
+        showNotification({
+            type: 'error',
+            message: `Failed to validate API key: ${error.message}. Check console for details.`,
+            duration: 5000
+        });
     } finally {
         showLoadingOverlay(false);
     }
