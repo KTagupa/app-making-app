@@ -54,7 +54,7 @@ export async function createProject(name, goal = '') {
         goal,
         created: Date.now(),
         modified: Date.now(),
-        ai_model: 'claude',
+        ai_model: 'gemini',
         gist_id: null,
         gist_url: null,
         last_synced: null,

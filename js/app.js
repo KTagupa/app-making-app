@@ -232,7 +232,7 @@ async function openProject(projectId) {
         setCanvasState(project.canvas_state);
 
         // Update AI model selector
-        document.getElementById('ai-model-selector').value = project.ai_model || 'claude';
+        document.getElementById('ai-model-selector').value = project.ai_model || 'gemini';
 
         // Render project
         renderProject(project);

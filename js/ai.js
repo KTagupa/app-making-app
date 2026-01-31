@@ -8,36 +8,14 @@ import { showNotification } from './utils.js';
 
 // AI Model Configurations
 const AI_CONFIGS = {
-    claude: {
-        name: 'Claude',
-        endpoint: 'https://api.anthropic.com/v1/messages',
-        headers: (apiKey) => ({
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-        }),
-        modelName: 'claude-3-5-sonnet-20241022' // Updated to current available model
-    },
-
-    chatgpt: {
-        name: 'ChatGPT',
-        endpoint: 'https://api.openai.com/v1/chat/completions',
-        headers: (apiKey) => ({
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        }),
-        modelName: 'gpt-4o-mini' // Changed to more accessible model; can upgrade to gpt-4o if available
-    },
-
     gemini: {
         name: 'Gemini',
-        endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
+        endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
         headers: () => ({
             'Content-Type': 'application/json'
         }),
-        modelName: 'gemini-2.0-flash-exp',
-        getUrl: (apiKey) => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`
+        modelName: 'gemini-2.5-flash',
+        getUrl: (apiKey) => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
     }
 };
 
@@ -107,24 +85,11 @@ function constructPrompt(userInput, context) {
 
 // Parse AI response based on model
 function parseAIResponse(model, data) {
-    let aiText;
-
-    switch (model) {
-        case 'claude':
-            aiText = data.content[0].text;
-            break;
-
-        case 'chatgpt':
-            aiText = data.choices[0].message.content;
-            break;
-
-        case 'gemini':
-            aiText = data.candidates[0].content.parts[0].text;
-            break;
-
-        default:
-            throw new Error(`Unknown model: ${model}`);
+    if (model !== 'gemini') {
+        throw new Error(`Unsupported model: ${model}`);
     }
+
+    const aiText = data.candidates[0].content.parts[0].text;
 
     // Remove markdown code fences if present
     const cleaned = aiText.replace(/```json\n?|```\n?/g, '').trim();
@@ -147,6 +112,10 @@ function parseAIResponse(model, data) {
 
 // Main AI call function
 export async function callAI(model, userPrompt, context) {
+    if (model !== 'gemini') {
+        throw new Error(`Only Gemini is supported now. Selected: ${model}`);
+    }
+
     const apiKey = await getAPIKey(model);
 
     if (!apiKey) {
@@ -156,48 +125,18 @@ export async function callAI(model, userPrompt, context) {
     const config = AI_CONFIGS[model];
     const prompt = constructPrompt(userPrompt, context);
 
-    let requestBody;
-    let endpoint = config.endpoint;
-
-    switch (model) {
-        case 'claude':
-            requestBody = {
-                model: config.modelName,
-                max_tokens: 4096,
-                messages: [{
-                    role: 'user',
-                    content: prompt
-                }],
-                system: getSystemPrompt()
-            };
-            break;
-
-        case 'chatgpt':
-            requestBody = {
-                model: config.modelName,
-                messages: [
-                    { role: 'system', content: getSystemPrompt() },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.7
-            };
-            break;
-
-        case 'gemini':
-            endpoint = config.getUrl(apiKey);
-            requestBody = {
-                contents: [{
-                    parts: [{
-                        text: getSystemPrompt() + '\n\n' + prompt
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 4096
-                }
-            };
-            break;
-    }
+    const endpoint = config.getUrl(apiKey);
+    const requestBody = {
+        contents: [{
+            parts: [{
+                text: getSystemPrompt() + '\n\n' + prompt
+            }]
+        }],
+        generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 4096
+        }
+    };
 
     // Make API call
     const response = await fetch(endpoint, {
@@ -217,40 +156,21 @@ export async function callAI(model, userPrompt, context) {
 
 // Validate API key by making a test request
 export async function validateAPIKey(model, apiKey) {
+    if (model !== 'gemini') {
+        return false;
+    }
+
     try {
         const config = AI_CONFIGS[model];
         const testPrompt = "Respond with just the word 'success'";
 
-        let requestBody;
-        let endpoint = config.endpoint;
-
         console.log(`Validating ${model} API key...`);
 
-        switch (model) {
-            case 'claude':
-                requestBody = {
-                    model: config.modelName,
-                    max_tokens: 10,
-                    messages: [{ role: 'user', content: testPrompt }]
-                };
-                break;
-
-            case 'chatgpt':
-                requestBody = {
-                    model: config.modelName,
-                    max_tokens: 10,
-                    messages: [{ role: 'user', content: testPrompt }]
-                };
-                break;
-
-            case 'gemini':
-                endpoint = config.getUrl(apiKey);
-                requestBody = {
-                    contents: [{ parts: [{ text: testPrompt }] }],
-                    generationConfig: { maxOutputTokens: 10 }
-                };
-                break;
-        }
+        const endpoint = config.getUrl(apiKey);
+        const requestBody = {
+            contents: [{ parts: [{ text: testPrompt }] }],
+            generationConfig: { maxOutputTokens: 10 }
+        };
 
         console.log('Request endpoint:', endpoint);
         console.log('Request body:', JSON.stringify(requestBody, null, 2));
