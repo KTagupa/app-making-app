@@ -535,25 +535,34 @@ async function handleModelChange(e) {
 }
 
 async function handleAIGenerate() {
+    console.log('[App] handleAIGenerate called');
+
     const project = getCurrentProject();
     if (!project) {
+        console.warn('[App] No current project');
         showNotification({ type: 'warning', message: 'Create a project first' });
         return;
     }
+    console.log('[App] Current project:', project.name, project.id);
 
     const prompt = document.getElementById('ai-prompt-input').value.trim();
     if (!prompt) {
+        console.warn('[App] Empty prompt');
         showNotification({ type: 'warning', message: 'Enter a prompt' });
         return;
     }
+    console.log('[App] User prompt:', prompt);
 
     const model = document.getElementById('ai-model-selector').value;
+    console.log('[App] Selected model:', model);
+
     const hasKey = await hasAPIKey(model);
+    console.log('[App] Has API key:', hasKey);
 
     if (!hasKey) {
         showNotification({
             type: 'warning',
-            message: `API key required for ${model}`,
+            message: `API key required for ${model}. Please add it in Settings.`,
             action: {
                 label: 'Add Key',
                 callback: () => openSettings()
@@ -565,45 +574,89 @@ async function handleAIGenerate() {
     // Get selected mode
     const modeBtn = document.querySelector('.ai-mode-btn.active');
     const mode = modeBtn ? modeBtn.dataset.mode : 'full_project';
+    console.log('[App] AI Mode:', mode);
 
     try {
+        console.log('[App] Starting AI generation...');
         showLoadingOverlay(true);
         document.getElementById('ai-generate-btn').disabled = true;
         document.getElementById('ai-generate-btn').textContent = 'Generating...';
 
         // Build context
         const context = buildAIContext(project, mode);
+        console.log('[App] AI Context built:', {
+            mode: context.mode,
+            projectGoal: context.projectGoal,
+            phasesCount: context.currentStructure?.length || 0,
+            keepItems: context.constraints.keepItems.length,
+            discardItems: context.constraints.discardItems.length
+        });
 
         // Call AI
+        console.log('[App] Calling AI...');
         const result = await callAI(model, prompt, context);
+        console.log('[App] AI Response received:', {
+            success: result.success,
+            error: result.error || null,
+            phasesCount: result.data?.phases?.length || 0
+        });
 
         if (result.success) {
+            // Validate the response has content
+            if (!result.data.phases || result.data.phases.length === 0) {
+                console.warn('[App] AI returned empty phases array');
+                showNotification({
+                    type: 'warning',
+                    message: 'AI returned an empty plan. Try being more specific in your prompt.'
+                });
+                return;
+            }
+
             // Merge AI response with project
+            console.log('[App] Merging AI response...');
             const newPhases = mergeAIResponse(result.data, project, context.constraints);
+            console.log('[App] Merged phases count:', newPhases.length);
 
             // Apply to project
+            console.log('[App] Applying AI response to project...');
             applyAIResponse(project, newPhases);
+            console.log('[App] Project now has', project.phases.length, 'phases');
 
             // Re-render
+            console.log('[App] Rendering project...');
             renderProject(project);
             autoSave();
 
             // Clear prompt
             document.getElementById('ai-prompt-input').value = '';
 
-            showNotification({ type: 'success', message: 'Plan generated successfully' });
+            showNotification({
+                type: 'success',
+                message: `Plan generated successfully! Created ${project.phases.length} phases.`
+            });
 
         } else {
-            showNotification({ type: 'error', message: result.error });
+            console.error('[App] AI generation failed:', result.error);
+            showNotification({
+                type: 'error',
+                message: result.error || 'AI generation failed. Check console for details.',
+                duration: 6000
+            });
         }
 
     } catch (error) {
-        console.error('AI generation failed:', error);
-        showNotification({ type: 'error', message: error.message });
+        console.error('[App] AI generation error:', error);
+        console.error('[App] Error stack:', error.stack);
+        showNotification({
+            type: 'error',
+            message: `AI Error: ${error.message}`,
+            duration: 6000
+        });
     } finally {
         showLoadingOverlay(false);
         document.getElementById('ai-generate-btn').disabled = false;
         document.getElementById('ai-generate-btn').textContent = 'Generate';
+        console.log('[App] AI generation process completed');
     }
 }
 
